@@ -15,7 +15,6 @@ return new class extends Migration
             $table->string('crea_number')->nullable();
             $table->string('specialization')->nullable();
             $table->text('bio')->nullable();
-            $table->decimal('service_rate', 10, 2)->nullable();
             $table->string('location_state', 2)->nullable();
             $table->string('location_city')->nullable();
             $table->timestamps();

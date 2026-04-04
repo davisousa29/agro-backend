@@ -14,7 +14,6 @@ class ConsultorProfile extends Model
         'crea_number',
         'specialization',
         'bio',
-        'service_rate',
         'location_state',
         'location_city',
     ];
