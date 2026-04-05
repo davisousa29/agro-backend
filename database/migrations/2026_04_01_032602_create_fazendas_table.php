@@ -15,9 +15,9 @@ return new class extends Migration
             $table->string('name');
             $table->decimal('area_hectares', 10, 2)->nullable();
             $table->string('address')->nullable();
+            $table->string('inscricao_estadual')->nullable();
             $table->string('city')->nullable();
             $table->string('state', 2)->nullable();
-            $table->string('primary_activity')->nullable();
             $table->timestamps();
         });
     }

@@ -14,9 +14,9 @@ class Fazenda extends Model
         'name',
         'area_hectares',
         'address',
+        'inscricao_estadual',
         'city',
         'state',
-        'primary_activity',
     ];
 
     // ── Relacionamentos ───────────────────────────────────────────────────────
