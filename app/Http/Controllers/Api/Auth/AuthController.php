@@ -17,6 +17,8 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
             'phone'    => 'nullable|string|max:20',
+            'username' => 'required|string|max:30|unique:users|alpha_dash',
+            'whatsapp' => 'nullable|string|max:20',
             'role'     => 'required|in:consultor,fazendeiro',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -32,6 +34,8 @@ class AuthController extends Controller
             'name'     => $request->name,
             'email'    => $request->email,
             'phone'    => $request->phone,
+            'username' => $request->username,
+            'whatsapp' => $request->whatsapp,
             'role'     => $request->role,
             'password' => $request->password,
         ]);
