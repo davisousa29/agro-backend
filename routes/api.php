@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\Fazenda\FazendaController;
 use App\Http\Controllers\Api\Consultor\ContratoController;
+use App\Http\Controllers\Api\BuscaController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -39,6 +40,11 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}',                [ContratoController::class, 'show']);
         Route::post('/{id}/responder',     [ContratoController::class, 'responder']);
         Route::post('/{id}/encerrar',      [ContratoController::class, 'encerrar']);
+    });
+
+    Route::prefix('busca')->group(function () {
+        Route::get('/fazendeiros',              [BuscaController::class, 'fazendeiros']);
+        Route::get('/fazendeiros/{username}',   [BuscaController::class, 'perfilFazendeiro']);
     });
 
 });
