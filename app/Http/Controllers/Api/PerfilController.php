@@ -43,10 +43,14 @@ class PerfilController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'crea_number'      => 'nullable|string|max:20',
-            'specialization'   => 'nullable|string|max:255',
+            'specialization'   => 'required|nullable|string|max:255',
             'bio'              => 'nullable|string',
-            'location_state'   => 'nullable|string|size:2',
-            'location_city'    => 'nullable|string|max:255',
+            'location_state'   => 'required|nullable|string|size:2',
+            'location_city'    => 'required|nullable|string|max:255',
+        ], [
+            'specialization.required' => 'Selecione uma especilização',
+            'location_state.required' => 'Selecione o seu estado',
+            'location_city.required' => 'Selecione a sua cidade',
         ]);
 
         if ($validator->fails()) {
