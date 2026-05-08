@@ -56,7 +56,7 @@ return new class extends Migration
 
             // Individual ou lote
             $table->enum('tipo_aplicacao', ['individual', 'lote'])->default('lote');
-            $table->uuid('lote_id')->nullable();
+            $table->unsignedBigInteger('lote_id')->nullable();
             $table->foreign('lote_id')->references('id')->on('lotes')->onDelete('set null');
             $table->string('identificacao_animal')->nullable(); // brinco/sisbov se individual
 
