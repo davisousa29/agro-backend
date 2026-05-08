@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\Fazenda\FazendaController;
 use App\Http\Controllers\Api\Consultor\ContratoController;
 use App\Http\Controllers\Api\BuscaController;
-use App\Http\Controllers\Api\Clima\ClimaController;
+use App\Http\Controllers\Api\Racao\ExigenciaController;
+use App\Http\Controllers\Api\Racao\IngredienteController;
+use App\Http\Controllers\Api\Racao\RacaoController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -36,20 +38,49 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::prefix('contratos')->group(function () {
-        Route::get('/',                    [ContratoController::class, 'index']);
-        Route::post('/',                   [ContratoController::class, 'store']);
-        Route::get('/{id}',                [ContratoController::class, 'show']);
-        Route::post('/{id}/responder',     [ContratoController::class, 'responder']);
-        Route::post('/{id}/encerrar',      [ContratoController::class, 'encerrar']);
+        Route::get('/',                [ContratoController::class, 'index']);
+        Route::post('/',               [ContratoController::class, 'store']);
+        Route::get('/{id}',            [ContratoController::class, 'show']);
+        Route::post('/{id}/responder', [ContratoController::class, 'responder']);
+        Route::post('/{id}/encerrar',  [ContratoController::class, 'encerrar']);
     });
 
     Route::prefix('busca')->group(function () {
-        Route::get('/fazendeiros',              [BuscaController::class, 'fazendeiros']);
-        Route::get('/fazendeiros/{username}',   [BuscaController::class, 'perfilFazendeiro']);
+        Route::get('/fazendeiros',            [BuscaController::class, 'fazendeiros']);
+        Route::get('/fazendeiros/{username}', [BuscaController::class, 'perfilFazendeiro']);
     });
 
-    Route::prefix('clima')->group(function () {
-        Route::get('/anual', [ClimaController::class, 'anual']);
+    // ── Programa de Formulação de Ração ───────────────────────────────────────
+    Route::prefix('racao')->group(function () {
+
+        // Exigências nutricionais
+        Route::post('/exigencias', [ExigenciaController::class, 'calcular']);
+
+        // Ingredientes
+        Route::get('/ingredientes',              [IngredienteController::class, 'index']);
+        Route::post('/ingredientes',             [IngredienteController::class, 'store']);
+        Route::get('/ingredientes/{id}',         [IngredienteController::class, 'show']);
+        Route::patch('/ingredientes/{id}/preco', [IngredienteController::class, 'atualizarPreco']);
+
+        // Programas de ração
+        Route::get('/programas',                          [RacaoController::class, 'index']);
+        Route::post('/programas',                         [RacaoController::class, 'store']);
+        Route::get('/programas/{id}',                     [RacaoController::class, 'show']);
+        Route::post('/programas/{id}/ingredientes',       [RacaoController::class, 'salvarIngredientes']);
+        Route::post('/programas/{id}/encerrar',           [RacaoController::class, 'encerrar']);
+    });
+
+    // ── Dados de referência — espécies, raças, categorias, sistemas ───────────
+    Route::prefix('referencia')->group(function () {
+        Route::get('/especies',    fn() => response()->json(['especies'  => \App\Models\Especie::where('ativo', true)->get()]));
+        Route::get('/racas',       fn() => response()->json(['racas'     => \App\Models\Raca::where('ativo', true)->get()]));
+        Route::get('/categorias',  fn() => response()->json(['categorias'=> \App\Models\CategoriaAnimal::where('ativo', true)->get()]));
+        Route::get('/sistemas',    fn() => response()->json(['sistemas'  => \App\Models\SistemaProducao::where('ativo', true)->get()]));
+
+        // Filtradas por espécie
+        Route::get('/racas/{especie_id}',      fn($id) => response()->json(['racas'     => \App\Models\Raca::where('especie_id', $id)->where('ativo', true)->get()]));
+        Route::get('/categorias/{especie_id}', fn($id) => response()->json(['categorias'=> \App\Models\CategoriaAnimal::where('especie_id', $id)->where('ativo', true)->get()]));
+        Route::get('/sistemas/{especie_id}',   fn($id) => response()->json(['sistemas'  => \App\Models\SistemaProducao::where('especie_id', $id)->where('ativo', true)->get()]));
     });
 
 });
