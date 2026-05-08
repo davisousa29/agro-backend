@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\BuscaController;
 use App\Http\Controllers\Api\Racao\ExigenciaController;
 use App\Http\Controllers\Api\Racao\IngredienteController;
 use App\Http\Controllers\Api\Racao\RacaoController;
+use App\Http\Controllers\Api\Clima\ClimaController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -81,6 +82,10 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/racas/{especie_id}',      fn($id) => response()->json(['racas'     => \App\Models\Raca::where('especie_id', $id)->where('ativo', true)->get()]));
         Route::get('/categorias/{especie_id}', fn($id) => response()->json(['categorias'=> \App\Models\CategoriaAnimal::where('especie_id', $id)->where('ativo', true)->get()]));
         Route::get('/sistemas/{especie_id}',   fn($id) => response()->json(['sistemas'  => \App\Models\SistemaProducao::where('especie_id', $id)->where('ativo', true)->get()]));
+    });
+
+    Route::prefix('clima')->group(function () {
+        Route::get('/anual', [ClimaController::class, 'anual']);
     });
 
 });
