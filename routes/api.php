@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\PerfilController;
 use App\Http\Controllers\Api\Fazenda\FazendaController;
 use App\Http\Controllers\Api\Consultor\ContratoController;
 use App\Http\Controllers\Api\BuscaController;
+use App\Http\Controllers\Api\Clima\ClimaController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -45,6 +46,10 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('busca')->group(function () {
         Route::get('/fazendeiros',              [BuscaController::class, 'fazendeiros']);
         Route::get('/fazendeiros/{username}',   [BuscaController::class, 'perfilFazendeiro']);
+    });
+
+    Route::prefix('clima')->group(function () {
+        Route::get('/anual', [ClimaController::class, 'anual']);
     });
 
 });
