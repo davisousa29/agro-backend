@@ -173,14 +173,20 @@ class ContratoController extends Controller
             $query->where('consultor_id', $user->id)
                 ->orWhere('fazendeiro_id', $user->id);
         })
-            ->where('status', 'ativo')
+            ->whereIn('status', ['ativo', 'pendente'])
             ->findOrFail($id);
 
-        $contrato->status = 'encerrado';
+        $novoStatus = $contrato->status === 'pendente' ? 'cancelado' : 'encerrado';
+
+        $contrato->status = $novoStatus;
         $contrato->save();
 
+        $mensagem = $novoStatus === 'cancelado'
+            ? 'Proposta cancelada com sucesso.'
+            : 'Contrato encerrado com sucesso.';
+
         return response()->json([
-            'message'  => 'Contrato encerrado com sucesso.',
+            'message'  => $mensagem,
             'contrato' => $contrato,
         ]);
     }
