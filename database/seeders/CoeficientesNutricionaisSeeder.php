@@ -12,246 +12,246 @@ class CoeficientesNutricionaisSeeder extends Seeder
     {
         $bovino = DB::table('especies')->where('nome', 'Bovino')->first();
 
-        // Raças
         $zebuino      = DB::table('racas')->where('nome', 'Zebuíno')->first();
         $cruzadoCorte = DB::table('racas')->where('nome', 'Cruzado Corte')->first();
         $cruzadoLeite = DB::table('racas')->where('nome', 'Cruzado Leite')->first();
 
-        // Categorias
-        $machoNaoCastrado = DB::table('categorias_animais')->where('nome', 'Macho não castrado')->first();
-        $machoCastrado    = DB::table('categorias_animais')->where('nome', 'Macho castrado')->first();
-        $femea            = DB::table('categorias_animais')->where('nome', 'Fêmea')->first();
+        $MNC  = DB::table('categorias_animais')->where('nome', 'Macho não castrado')->first();
+        $MC   = DB::table('categorias_animais')->where('nome', 'Macho castrado')->first();
+        $F    = DB::table('categorias_animais')->where('nome', 'Fêmea')->first();
 
-        // Sistemas
         $pasto        = DB::table('sistemas_producao')->where('nome', 'Pasto')->where('especie_id', $bovino->id)->first();
         $confinamento = DB::table('sistemas_producao')->where('nome', 'Confinamento')->where('especie_id', $bovino->id)->first();
 
-        $coeficientes = [];
+        $coefs = [];
 
         // ─────────────────────────────────────────────────────────────────────
-        // BR-CORTE 2016 — PASTO
-        // Fonte: Planilha BR-CORTE 2016 (Benedeti et al., 2016)
-        // Fórmulas: resultado = coef_a × variavel_base ^ coef_b + coef_c
+        // NOTAS SOBRE AS FÓRMULAS (BR-CORTE 2016 - Benedeti et al.)
+        //
+        // PCJ  = PV × coef_a  (varia por raça)
+        // PCVZ = PCJ × coef_a (varia por raça, categoria, sistema)
+        // PCVZeq = PCVZ × coef_a (varia por raça e categoria)
+        // ELm  = 0.075 × PCVZ^0.75 (igual para todos)
+        // ELg  = coef_a × PCVZeq^0.75 × GPCVZ^0.9116 (varia por raça/cat/sistema)
+        // CMS  = coef_a × PV^0.75 × e^(coef_c × PV) (varia por raça e sistema)
+        // PDR  = PB × coef_a% (varia por sistema)
         // ─────────────────────────────────────────────────────────────────────
 
-        $combsPasto = [
-            [$zebuino->id,      $machoNaoCastrado->id],
-            [$zebuino->id,      $machoCastrado->id],
-            [$zebuino->id,      $femea->id],
-            [$cruzadoCorte->id, $machoNaoCastrado->id],
-            [$cruzadoCorte->id, $machoCastrado->id],
-            [$cruzadoCorte->id, $femea->id],
-            [$cruzadoLeite->id, $machoNaoCastrado->id],
-            [$cruzadoLeite->id, $machoCastrado->id],
-            [$cruzadoLeite->id, $femea->id],
+        foreach ([$pasto, $confinamento] as $sistema) {
+            $isPasto = $sistema->nome === 'Pasto';
+
+            // ── PCJ por raça ─────────────────────────────────────────────────
+            // Zebuíno: PCJ = PV × 0.9724
+            // Cruzado: PCJ = PV × 0.9758
+            foreach ([
+                         [$zebuino->id,      0.9724],
+                         [$cruzadoCorte->id, 0.9758],
+                         [$cruzadoLeite->id, 0.9758],
+                     ] as [$racaId, $coefPCJ]) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'PCJ', 'kg', 'linear', 'BR-CORTE 2016',
+                        $coefPCJ, 1.0, 0.0, 'PV',
+                        "PCJ = {$coefPCJ} × PV"
+                    );
+                }
+            }
+
+            // ── PCVZ por raça, categoria e sistema ───────────────────────────
+            // Confinamento:
+            //   Zebuíno MNC: 0.8768, MC: 0.8813, Fêmea: 0.8922
+            //   Cruzado MNC: 0.8663, MC: 0.8744, Fêmea: 0.8888
+            // Pasto (aproximação baseada no BR-CORTE 2016):
+            //   Zebuíno MNC: 0.8510, MC: 0.8560, Fêmea: 0.8660
+            //   Cruzado MNC: 0.8410, MC: 0.8490, Fêmea: 0.8610
+            $coefsPCVZ = $isPasto ? [
+                $zebuino->id      => [$MNC->id => 0.8510, $MC->id => 0.8560, $F->id => 0.8660],
+                $cruzadoCorte->id => [$MNC->id => 0.8410, $MC->id => 0.8490, $F->id => 0.8610],
+                $cruzadoLeite->id => [$MNC->id => 0.8410, $MC->id => 0.8490, $F->id => 0.8610],
+            ] : [
+                $zebuino->id      => [$MNC->id => 0.8768, $MC->id => 0.8813, $F->id => 0.8922],
+                $cruzadoCorte->id => [$MNC->id => 0.8663, $MC->id => 0.8744, $F->id => 0.8888],
+                $cruzadoLeite->id => [$MNC->id => 0.8663, $MC->id => 0.8744, $F->id => 0.8888],
+            ];
+
+            foreach ($coefsPCVZ as $racaId => $cats) {
+                foreach ($cats as $catId => $coefPCVZ) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'PCVZ', 'kg', 'linear', 'BR-CORTE 2016',
+                        $coefPCVZ, 1.0, 0.0, 'PCJ',
+                        "PCVZ = {$coefPCVZ} × PCJ"
+                    );
+                }
+            }
+
+            // ── PCVZeq por raça e categoria ───────────────────────────────────
+            // PCVZeq = PCVZ × fator
+            // Zebuíno MNC: 1.0000, MC: 1.1940, Fêmea: 1.2861
+            // CruzadoCorte MNC: 0.9232, MC: 1.0726, Fêmea: 1.2398
+            // CruzadoLeite MNC: 0.8393, MC: 0.9760, Fêmea: 1.1280
+            $coefsPCVZeq = [
+                $zebuino->id      => [$MNC->id => 1.0000, $MC->id => 1.1940, $F->id => 1.2861],
+                $cruzadoCorte->id => [$MNC->id => 0.9232, $MC->id => 1.0726, $F->id => 1.2398],
+                $cruzadoLeite->id => [$MNC->id => 0.8393, $MC->id => 0.9760, $F->id => 1.1280],
+            ];
+
+            foreach ($coefsPCVZeq as $racaId => $cats) {
+                foreach ($cats as $catId => $fator) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'PCVZeq', 'kg', 'linear', 'BR-CORTE 2016',
+                        $fator, 1.0, 0.0, 'PCVZ',
+                        "PCVZeq = {$fator} × PCVZ"
+                    );
+                }
+            }
+
+            // ── ELm — igual para todos ────────────────────────────────────────
+            // ELm = 0.075 × PCVZ^0.75 (BR-CORTE 2016)
+            foreach ([$zebuino->id, $cruzadoCorte->id, $cruzadoLeite->id] as $racaId) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'ELm', 'Mcal/dia', 'exponencial', 'BR-CORTE 2016',
+                        0.075, 0.75, 0.0, 'PCVZ',
+                        'ELm = 0.075 × PCVZ^0.75'
+                    );
+                }
+            }
+
+            // ── ELg por raça, categoria e sistema ────────────────────────────
+            // ELg = coef_a × PCVZeq^0.75 × GPCVZ^0.9116 (confinamento)
+            // ELg = coef_a × PCVZeq^0.75 × GPCVZ^0.4775 (pasto)
+            $coef_b_ELg = $isPasto ? 0.4775 : 0.9116;
+
+            $coefsELg = $isPasto ? [
+                // Pasto — coef_a BR-CORTE 2016
+                $zebuino->id      => [$MNC->id => 0.0472, $MC->id => 0.0560, $F->id => 0.0684],
+                $cruzadoCorte->id => [$MNC->id => 0.0472, $MC->id => 0.0560, $F->id => 0.0684],
+                $cruzadoLeite->id => [$MNC->id => 0.0472, $MC->id => 0.0560, $F->id => 0.0684],
+            ] : [
+                // Confinamento — coef_a BR-CORTE 2016
+                $zebuino->id      => [$MNC->id => 0.0553, $MC->id => 0.0461, $F->id => 0.0461],
+                $cruzadoCorte->id => [$MNC->id => 0.0553, $MC->id => 0.0441, $F->id => 0.0553],
+                $cruzadoLeite->id => [$MNC->id => 0.0553, $MC->id => 0.0400, $F->id => 0.0502],
+            ];
+
+            foreach ($coefsELg as $racaId => $cats) {
+                foreach ($cats as $catId => $coefA) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'ELg', 'Mcal/dia', 'exponencial', 'BR-CORTE 2016',
+                        $coefA, $coef_b_ELg, 0.0, 'GPCVZ_PCVZeq',
+                        "ELg = {$coefA} × PCVZeq^0.75 × GPCVZ^{$coef_b_ELg}"
+                    );
+                }
+            }
+
+            // ── CMS por raça e sistema ────────────────────────────────────────
+            // CMS = coef_a × PV^0.75 × e^(coef_c × PV)
+            $coef_c_CMS = $isPasto ? -0.00015 : -0.00012;
+
+            $coefsCMS = $isPasto ? [
+                $zebuino->id      => 0.081428,
+                $cruzadoCorte->id => 0.084256,
+                $cruzadoLeite->id => 0.075649,
+            ] : [
+                $zebuino->id      => 0.080698,
+                $cruzadoCorte->id => 0.083501,
+                $cruzadoLeite->id => 0.074972,
+            ];
+
+            foreach ($coefsCMS as $racaId => $coefA) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'CMS', 'kg/dia', 'exponencial', 'BR-CORTE 2016',
+                        $coefA, 0.75, $coef_c_CMS, 'PV',
+                        "CMS = {$coefA} × PV^0.75 × e^({$coef_c_CMS} × PV)"
+                    );
+                }
+            }
+
+            // ── PDR por sistema ───────────────────────────────────────────────
+            $pdrPct = $isPasto ? 65.49 : 62.03;
+            foreach ([$zebuino->id, $cruzadoCorte->id, $cruzadoLeite->id] as $racaId) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'PDR_pct', '%', 'linear', 'BR-CORTE 2016',
+                        $pdrPct, 1.0, 0.0, 'PB',
+                        "PDR = {$pdrPct}% da PB"
+                    );
+                }
+            }
+        }
+
+        // ── Cag e Pg (Ca e P de ganho) — variam por raça ─────────────────────
+        // Cag = coef_a × GPCVZ (g/dia)
+        // Pg  = coef_a × GPCVZ (g/dia)
+        // Fonte: tabela minerais BR-CORTE 2016 — para GPCVZ=0.48
+        // Zebuíno: Cag=7.744 → coef=16.13, Pg=3.698 → coef=7.70
+        // Cruzado: Cag=9.417 → coef=19.62, Pg=4.473 → coef=9.32
+        $coefsCag = [
+            $zebuino->id      => 16.13,
+            $cruzadoCorte->id => 19.62,
+            $cruzadoLeite->id => 19.62,
+        ];
+        $coefsPg = [
+            $zebuino->id      => 7.70,
+            $cruzadoCorte->id => 9.32,
+            $cruzadoLeite->id => 9.32,
         ];
 
-        // Coeficientes ELm (Energia Líquida Mantença) — Mcal/dia
-        // ELm = 0.047 × PCVZeq^1  (igual para todas as combinações em pasto)
-        foreach ($combsPasto as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'ELm', 'Mcal/dia', 'linear', 'BR-CORTE 2016',
-                0.047, 1.0, 0.0, 'PCVZeq',
-                'ELm = 0.047 × PCVZeq'
-            );
+        foreach ([$pasto, $confinamento] as $sistema) {
+            foreach ($coefsCag as $racaId => $coefA) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'Cag', 'g/dia', 'linear', 'BR-CORTE 2016',
+                        $coefA, 1.0, 0.0, 'GPCVZ',
+                        "Ca ganho = {$coefA} × GPCVZ"
+                    );
+                }
+            }
+            foreach ($coefsPg as $racaId => $coefA) {
+                foreach ([$MNC->id, $MC->id, $F->id] as $catId) {
+                    $coefs[] = $this->m(
+                        $bovino->id, $racaId, $catId, $sistema->id,
+                        'Pg', 'g/dia', 'linear', 'BR-CORTE 2016',
+                        $coefA, 1.0, 0.0, 'GPCVZ',
+                        "P ganho = {$coefA} × GPCVZ"
+                    );
+                }
+            }
         }
 
-        // Coeficientes PCVZ (Peso Corpo Vazio) — kg
-        // PCVZ = PCJ × 0.851 (Pasto, igual para todos)
-        foreach ($combsPasto as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'PCVZ', 'kg', 'linear', 'BR-CORTE 2016',
-                0.851, 1.0, 0.0, 'PCJ',
-                'PCVZ = 0.851 × PCJ'
-            );
-        }
-
-        // Coeficientes PCVZeq (Peso Corpo Vazio equivalente) — kg
-        // PCVZeq = PCVZ^0.75
-        foreach ($combsPasto as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'PCVZeq', 'kg', 'exponencial', 'BR-CORTE 2016',
-                1.0, 0.75, 0.0, 'PCVZ',
-                'PCVZeq = PCVZ^0.75'
-            );
-        }
-
-        // ELg (Energia Líquida Ganho) — Mcal/dia
-        // Varia por raça e categoria — BR-CORTE 2016 Pasto
-        $elgPasto = [
-            // [raca_id, categoria_id, coef_a, coef_b]
-            // Zebuíno Pasto
-            [$zebuino->id, $machoNaoCastrado->id, 0.0557, 0.4775],
-            [$zebuino->id, $machoCastrado->id,     0.0557, 0.4775],
-            [$zebuino->id, $femea->id,             0.0557, 0.4775],
-            // Cruzado Corte Pasto
-            [$cruzadoCorte->id, $machoNaoCastrado->id, 0.0557, 0.4775],
-            [$cruzadoCorte->id, $machoCastrado->id,    0.0557, 0.4775],
-            [$cruzadoCorte->id, $femea->id,            0.0684, 0.4775],
-            // Cruzado Leite Pasto
-            [$cruzadoLeite->id, $machoNaoCastrado->id, 0.0557, 0.4775],
-            [$cruzadoLeite->id, $machoCastrado->id,    0.0557, 0.4775],
-            [$cruzadoLeite->id, $femea->id,            0.0684, 0.4775],
-        ];
-
-        foreach ($elgPasto as [$racaId, $catId, $a, $b]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'ELg', 'Mcal/dia', 'exponencial', 'BR-CORTE 2016',
-                $a, $b, 0.0, 'GPCVZ_PCVZeq',
-                'ELg = a × PCVZeq^0.75 × GPCVZ^b'
-            );
-        }
-
-        // CMS (Consumo Matéria Seca) — kg/dia
-        // CMS = 0.024 × PV^0.75 × e^(-0.00015 × PV) (Pasto BR-CORTE 2016)
-        foreach ($combsPasto as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'CMS', 'kg/dia', 'exponencial', 'BR-CORTE 2016',
-                0.024, 0.75, -0.00015, 'PV',
-                'CMS = 0.024 × PV^0.75 × e^(-0.00015 × PV)'
-            );
-        }
-
-        // PDR (Proteína Degradável no Rúmen) — % da PB
-        // PDR = 65.49% da PB (Pasto BR-CORTE 2016, Cruzado)
-        foreach ($combsPasto as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $pasto->id,
-                'PDR_pct', '%', 'linear', 'BR-CORTE 2016',
-                65.49, 1.0, 0.0, 'PB',
-                'PDR = 65.49% da PB'
-            );
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // BR-CORTE 2016 — CONFINAMENTO
-        // ─────────────────────────────────────────────────────────────────────
-
-        $combsConf = [
-            [$zebuino->id,      $machoNaoCastrado->id],
-            [$zebuino->id,      $machoCastrado->id],
-            [$zebuino->id,      $femea->id],
-            [$cruzadoCorte->id, $machoNaoCastrado->id],
-            [$cruzadoCorte->id, $machoCastrado->id],
-            [$cruzadoCorte->id, $femea->id],
-            [$cruzadoLeite->id, $machoNaoCastrado->id],
-            [$cruzadoLeite->id, $machoCastrado->id],
-            [$cruzadoLeite->id, $femea->id],
-        ];
-
-        // ELm Confinamento
-        foreach ($combsConf as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'ELm', 'Mcal/dia', 'linear', 'BR-CORTE 2016',
-                0.047, 1.0, 0.0, 'PCVZeq',
-                'ELm = 0.047 × PCVZeq'
-            );
-        }
-
-        // PCVZ Confinamento
-        foreach ($combsConf as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'PCVZ', 'kg', 'linear', 'BR-CORTE 2016',
-                0.891, 1.0, 0.0, 'PCJ',
-                'PCVZ = 0.891 × PCJ (Confinamento)'
-            );
-        }
-
-        // PCVZeq Confinamento
-        foreach ($combsConf as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'PCVZeq', 'kg', 'exponencial', 'BR-CORTE 2016',
-                1.0, 0.75, 0.0, 'PCVZ',
-                'PCVZeq = PCVZ^0.75'
-            );
-        }
-
-        // ELg Confinamento — varia por raça e categoria
-        $elgConf = [
-            [$zebuino->id,      $machoNaoCastrado->id, 0.0389, 0.9116],
-            [$zebuino->id,      $machoCastrado->id,    0.0461, 0.9116],
-            [$zebuino->id,      $femea->id,            0.0461, 0.9116],
-            [$cruzadoCorte->id, $machoNaoCastrado->id, 0.0373, 0.9116],
-            [$cruzadoCorte->id, $machoCastrado->id,    0.0441, 0.9116],
-            [$cruzadoCorte->id, $femea->id,            0.0553, 0.9116],
-            [$cruzadoLeite->id, $machoNaoCastrado->id, 0.0338, 0.9116],
-            [$cruzadoLeite->id, $machoCastrado->id,    0.0400, 0.9116],
-            [$cruzadoLeite->id, $femea->id,            0.0502, 0.9116],
-        ];
-
-        foreach ($elgConf as [$racaId, $catId, $a, $b]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'ELg', 'Mcal/dia', 'exponencial', 'BR-CORTE 2016',
-                $a, $b, 0.0, 'GPCVZ_PCVZeq',
-                'ELg = a × PCVZeq^0.75 × GPCVZ^b'
-            );
-        }
-
-        // CMS Confinamento
-        foreach ($combsConf as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'CMS', 'kg/dia', 'exponencial', 'BR-CORTE 2016',
-                0.0245, 0.75, -0.00012, 'PV',
-                'CMS = 0.0245 × PV^0.75 × e^(-0.00012 × PV)'
-            );
-        }
-
-        // PDR Confinamento
-        foreach ($combsConf as [$racaId, $catId]) {
-            $coeficientes[] = $this->montar(
-                $bovino->id, $racaId, $catId, $confinamento->id,
-                'PDR_pct', '%', 'linear', 'BR-CORTE 2016',
-                62.03, 1.0, 0.0, 'PB',
-                'PDR = 62.03% da PB (Confinamento)'
-            );
-        }
-
-        // Insere todos os coeficientes
-        foreach ($coeficientes as $coef) {
-            DB::table('coeficientes_nutricionais')->insert($coef);
-        }
+        DB::table('coeficientes_nutricionais')->insert($coefs);
     }
 
-    private function montar(
-        string $especieId,
-        string $racaId,
-        string $categoriaId,
-        string $sistemaId,
-        string $nutriente,
-        string $unidade,
-        string $formulaTipo,
-        string $referencia,
-        float  $coefA,
-        float  $coefB,
-        float  $coefC,
-        string $variavelBase,
-        string $observacao = ''
+    private function m(
+        string $eId, string $rId, string $cId, string $sId,
+        string $nutriente, string $unidade, string $tipo,
+        string $ref, float $a, float $b, float $c,
+        string $var, string $obs = ''
     ): array {
         return [
             'id'            => Str::uuid(),
-            'especie_id'    => $especieId,
-            'raca_id'       => $racaId,
-            'categoria_id'  => $categoriaId,
-            'sistema_id'    => $sistemaId,
+            'especie_id'    => $eId,
+            'raca_id'       => $rId,
+            'categoria_id'  => $cId,
+            'sistema_id'    => $sId,
             'nutriente'     => $nutriente,
             'unidade'       => $unidade,
-            'formula_tipo'  => $formulaTipo,
-            'referencia'    => $referencia,
-            'coef_a'        => $coefA,
-            'coef_b'        => $coefB,
-            'coef_c'        => $coefC,
-            'variavel_base' => $variavelBase,
-            'observacao'    => $observacao,
+            'formula_tipo'  => $tipo,
+            'referencia'    => $ref,
+            'coef_a'        => $a,
+            'coef_b'        => $b,
+            'coef_c'        => $c,
+            'variavel_base' => $var,
+            'observacao'    => $obs,
             'ativo'         => true,
             'created_at'    => now(),
             'updated_at'    => now(),

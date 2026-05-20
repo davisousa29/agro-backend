@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('programas_racao', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('contrato_id');
-            $table->foreign('contrato_id')->references('id')->on('contratos')->onDelete('cascade');
+            $table->uuid('contrato_id')->nullable();
+            $table->foreign('contrato_id')->references('id')->on('contratos')->onDelete('set null');
             $table->uuid('criado_por');
             $table->foreign('criado_por')->references('id')->on('users')->onDelete('cascade');
 

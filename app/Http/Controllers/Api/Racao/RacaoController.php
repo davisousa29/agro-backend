@@ -13,15 +13,11 @@ use Illuminate\Support\Facades\DB;
 class RacaoController extends Controller
 {
     // ── Lista programas de ração do contrato ──────────────────────────────────
-
     public function index(Request $request)
     {
         $user = auth()->user();
 
-        $programas = ProgramaRacao::whereHas('contrato', function ($q) use ($user) {
-            $q->where('consultor_id', $user->id)
-                ->orWhere('fazendeiro_id', $user->id);
-        })
+        $programas = ProgramaRacao::where('criado_por', $user->id)
             ->with(['especie', 'raca', 'categoria', 'sistema'])
             ->when($request->filled('contrato_id'), fn($q) =>
             $q->where('contrato_id', $request->contrato_id)
@@ -35,15 +31,11 @@ class RacaoController extends Controller
     }
 
     // ── Exibe um programa completo com ingredientes ───────────────────────────
-
     public function show($id)
     {
         $user = auth()->user();
 
-        $programa = ProgramaRacao::whereHas('contrato', function ($q) use ($user) {
-            $q->where('consultor_id', $user->id)
-                ->orWhere('fazendeiro_id', $user->id);
-        })
+        $programa = ProgramaRacao::where('criado_por', $user->id)
             ->with([
                 'especie', 'raca', 'categoria', 'sistema',
                 'ingredientes.ingrediente',
@@ -63,7 +55,7 @@ class RacaoController extends Controller
         $user = auth()->user();
 
         $validator = Validator::make($request->all(), [
-            'contrato_id'      => 'required|uuid|exists:contratos,id',
+            'contrato_id'      => 'nullable|uuid|exists:contratos,id',
             'nome'             => 'required|string|max:255',
             'especie_id'       => 'required|uuid|exists:especies,id',
             'raca_id'          => 'required|uuid|exists:racas,id',
@@ -127,9 +119,7 @@ class RacaoController extends Controller
     {
         $user = auth()->user();
 
-        $programa = ProgramaRacao::whereHas('contrato', function ($q) use ($user) {
-            $q->where('consultor_id', $user->id);
-        })
+        $programa = ProgramaRacao::where('criado_por', $user->id)
             ->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
