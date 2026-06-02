@@ -208,10 +208,7 @@ class RacaoController extends Controller
     {
         $user = auth()->user();
 
-        $programa = ProgramaRacao::whereHas('contrato', function ($q) use ($user) {
-            $q->where('consultor_id', $user->id)
-                ->orWhere('fazendeiro_id', $user->id);
-        })
+        $programa = ProgramaRacao::where('criado_por', $user->id)
             ->findOrFail($id);
 
         $programa->update(['status' => 'encerrado']);
