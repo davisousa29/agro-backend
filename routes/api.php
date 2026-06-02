@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Racao\ExigenciaController;
 use App\Http\Controllers\Api\Racao\IngredienteController;
 use App\Http\Controllers\Api\Racao\RacaoController;
 use App\Http\Controllers\Api\Clima\ClimaController;
+use App\Http\Controllers\Api\Projecao\ProjecaoVendaController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -86,6 +87,14 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('clima')->group(function () {
         Route::get('/anual', [ClimaController::class, 'anual']);
+    });
+
+    Route::prefix('projecoes')->group(function () {
+        Route::get('/',        [ProjecaoVendaController::class, 'index']);
+        Route::post('/',       [ProjecaoVendaController::class, 'store']);
+        Route::get('/{id}',    [ProjecaoVendaController::class, 'show']);
+        Route::delete('/{id}', [ProjecaoVendaController::class, 'destroy']);
+        Route::get('/{id}/pdf',[ProjecaoVendaController::class, 'pdf']);
     });
 
 });
