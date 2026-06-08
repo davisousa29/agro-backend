@@ -196,7 +196,7 @@ class ProjecaoVendaController extends Controller
         $user = auth()->user();
 
         $projecao = ProjecaoVenda::where('criado_por', $user->id)
-            ->with('animais', 'contrato.fazenda', 'contrato.fazendeiro')
+            ->with('animais', 'contrato.fazenda', 'contrato.fazendeiro', 'criador')
             ->findOrFail($id);
 
         $modalidadeLabel = [
@@ -210,6 +210,32 @@ class ProjecaoVendaController extends Controller
         return response()->json([
             'html'     => $html,
             'projecao' => $projecao,
+        ]);
+    }
+
+    // ── Vincula uma projeção a um contrato ──────────────────────────────────────────────────
+    public function vincularContrato(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        $projecao = ProjecaoVenda::where('criado_por', $user->id)->findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'contrato_id' => 'required|uuid|exists:contratos,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Dados inválidos.',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $projecao->update(['contrato_id' => $request->contrato_id]);
+
+        return response()->json([
+            'message'  => 'Contrato vinculado com sucesso.',
+            'projecao' => $projecao->load('contrato.fazenda', 'contrato.fazendeiro'),
         ]);
     }
 }

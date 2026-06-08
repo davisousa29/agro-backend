@@ -218,4 +218,26 @@ class RacaoController extends Controller
             'programa' => $programa,
         ]);
     }
+
+    // ── Gera um PDF ───────────────────────────────────────────────────
+    public function pdf($id)
+    {
+        $user = auth()->user();
+
+        $programa = ProgramaRacao::where('criado_por', $user->id)
+            ->with([
+                'especie', 'raca', 'categoria', 'sistema',
+                'ingredientes.ingrediente',
+                'contrato.fazenda', 'contrato.fazendeiro',
+                'criador',
+            ])
+            ->findOrFail($id);
+
+        $html = view('pdf.formulacao-racao', compact('programa'))->render();
+
+        return response()->json([
+            'html'     => $html,
+            'programa' => $programa,
+        ]);
+    }
 }

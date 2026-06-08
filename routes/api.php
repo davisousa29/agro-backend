@@ -70,6 +70,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/programas/{id}',                     [RacaoController::class, 'show']);
         Route::post('/programas/{id}/ingredientes',       [RacaoController::class, 'salvarIngredientes']);
         Route::post('/programas/{id}/encerrar',           [RacaoController::class, 'encerrar']);
+        Route::get('/programas/{id}/pdf', [RacaoController::class, 'pdf']);
     });
 
     // ── Dados de referência — espécies, raças, categorias, sistemas ───────────
@@ -95,6 +96,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}',    [ProjecaoVendaController::class, 'show']);
         Route::delete('/{id}', [ProjecaoVendaController::class, 'destroy']);
         Route::get('/{id}/pdf',[ProjecaoVendaController::class, 'pdf']);
+        Route::patch('/{id}/contrato', [ProjecaoVendaController::class, 'vincularContrato']);
     });
 
 });
