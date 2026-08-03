@@ -13,26 +13,45 @@ class BuscaController extends Controller
 
     public function fazendeiros(Request $request)
     {
+        $username = trim($request->input('username', ''));
+        $estado   = $request->input('estado');
+        $cidade   = trim($request->input('cidade', ''));
+
+        // ── Exige critério mínimo de busca ────────────────────────────────────
+        // Pelo menos: 2 caracteres no username OU um estado OU cidade
+        $temUsernameValido = strlen($username) >= 2;
+        $temEstado         = !empty($estado);
+        $temCidade         = strlen($cidade) >= 2;
+
+        if (!$temUsernameValido && !$temEstado && !$temCidade) {
+            return response()->json([
+                'message' => 'Informe ao menos 2 caracteres no @ ou selecione um estado.',
+                'data'    => [],
+                'meta'    => [
+                    'current_page' => 1,
+                    'last_page'    => 1,
+                    'total'        => 0,
+                ],
+            ], 422);
+        }
+
         $query = User::where('role', 'fazendeiro')
             ->where('active', true)
             ->with(['fazendeiroProfile', 'fazendas']);
 
-        // Busca por @username
-        if ($request->filled('username')) {
-            $query->where('username', 'like', '%' . $request->username . '%');
+        if ($temUsernameValido) {
+            $query->where('username', 'ilike', '%' . $username . '%');
         }
 
-        // Busca por estado
-        if ($request->filled('estado')) {
-            $query->whereHas('fazendeiroProfile', function ($q) use ($request) {
-                $q->where('location_state', $request->estado);
+        if ($temEstado) {
+            $query->whereHas('fazendeiroProfile', function ($q) use ($estado) {
+                $q->where('location_state', $estado);
             });
         }
 
-        // Busca por cidade
-        if ($request->filled('cidade')) {
-            $query->whereHas('fazendeiroProfile', function ($q) use ($request) {
-                $q->where('location_city', 'like', '%' . $request->cidade . '%');
+        if ($temCidade) {
+            $query->whereHas('fazendeiroProfile', function ($q) use ($cidade) {
+                $q->where('location_city', 'ilike', '%' . $cidade . '%');
             });
         }
 
