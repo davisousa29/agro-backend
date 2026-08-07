@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Racao\IngredienteController;
 use App\Http\Controllers\Api\Racao\RacaoController;
 use App\Http\Controllers\Api\Clima\ClimaController;
 use App\Http\Controllers\Api\Projecao\ProjecaoVendaController;
+use App\Http\Controllers\Api\Notificacao\NotificacaoController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
@@ -99,4 +100,12 @@ Route::middleware('auth:api')->group(function () {
         Route::patch('/{id}/contrato', [ProjecaoVendaController::class, 'vincularContrato']);
     });
 
+    // ── Notificações direcionadas ───────────
+    Route::prefix('notificacoes')->group(function () {
+        Route::get('/',                    [NotificacaoController::class, 'index']);
+        Route::get('/ultimas',             [NotificacaoController::class, 'ultimas']);
+        Route::get('/nao-lidas',           [NotificacaoController::class, 'contarNaoLidas']);
+        Route::patch('/{id}/lida',         [NotificacaoController::class, 'marcarLida']);
+        Route::patch('/todas/lidas',       [NotificacaoController::class, 'marcarTodasLidas']);
+    });
 });

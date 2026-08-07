@@ -9,6 +9,7 @@ use App\Models\Fazenda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use App\Services\NotificacaoService;
 
 class ContratoController extends Controller
 {
@@ -153,6 +154,16 @@ class ContratoController extends Controller
         $contrato->status = $request->acao === 'aceitar' ? 'ativo' : 'cancelado';
         $contrato->save();
 
+        // Carrega a fazenda para o texto da notificação
+        $contrato->load('fazenda');
+
+        // Notifica o consultor sobre a resposta
+        if ($request->acao === 'aceitar') {
+            NotificacaoService::contratoAceito($contrato->consultor_id, $contrato);
+        } else {
+            NotificacaoService::contratoRecusado($contrato->consultor_id, $contrato);
+        }
+
         $mensagem = $request->acao === 'aceitar'
             ? 'Contrato aceito com sucesso.'
             : 'Contrato recusado.';
@@ -180,6 +191,15 @@ class ContratoController extends Controller
 
         $contrato->status = $novoStatus;
         $contrato->save();
+
+        $contrato->load('fazenda');
+
+        // Notifica a outra parte do contrato (quem não encerrou)
+        $destinatarioId = $user->id === $contrato->consultor_id
+            ? $contrato->fazendeiro_id
+            : $contrato->consultor_id;
+
+        NotificacaoService::contratoEncerrado($destinatarioId, $contrato);
 
         $mensagem = $novoStatus === 'cancelado'
             ? 'Proposta cancelada com sucesso.'
