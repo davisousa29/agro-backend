@@ -15,6 +15,10 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $request->merge([
+            'email' => strtolower(trim($request->email ?? '')),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|min:3|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
@@ -97,6 +101,10 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        $request->merge([
+            'email' => strtolower(trim($request->email ?? '')),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'email'    => 'required|string|email',
             'password' => 'required|string',
