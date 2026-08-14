@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,2');
 });
 
 // ── Rotas protegidas — precisam de token JWT válido ───────────────────────────
