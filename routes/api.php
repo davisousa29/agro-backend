@@ -11,12 +11,17 @@ use App\Http\Controllers\Api\Racao\RacaoController;
 use App\Http\Controllers\Api\Clima\ClimaController;
 use App\Http\Controllers\Api\Projecao\ProjecaoVendaController;
 use App\Http\Controllers\Api\Notificacao\NotificacaoController;
+use App\Http\Controllers\Api\Auth\RecuperacaoSenhaController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas — não precisam de token ────────────────────────────────────
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,2');
+
+    // Recuperação de senha
+    Route::post('/recuperar-senha', [RecuperacaoSenhaController::class, 'solicitar'])->middleware('throttle:5,2');
+    Route::post('/redefinir-senha', [RecuperacaoSenhaController::class, 'redefinir'])->middleware('throttle:5,2');
 });
 
 // ── Rotas protegidas — precisam de token JWT válido ───────────────────────────
