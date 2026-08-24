@@ -99,6 +99,8 @@ class AuthController extends Controller
 
     // ── Login ─────────────────────────────────────────────────────────────────
 
+    // ── Login ─────────────────────────────────────────────────────────────────
+
     public function login(Request $request)
     {
         $request->merge([
@@ -117,6 +119,7 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Verifica as credenciais SEM logar ainda (para checar o 2FA antes)
         $token = auth()->attempt([
             'email'    => $request->email,
             'password' => $request->password,
@@ -129,11 +132,37 @@ class AuthController extends Controller
             ], 401);
         }
 
+        $user   = auth()->user();
+        $config = $user->configuracao2fa;
+
+        // Se tem 2FA ativo, NÃO devolve o token — pede o segundo fator
+        if ($config && $config->ativo && $config->confirmado_em) {
+            // Invalida o token recém-gerado (o login só se completa após o 2FA)
+            auth()->logout();
+
+            return response()->json([
+                'message'         => 'Verificação em duas etapas necessária.',
+                'requer_2fa'      => true,
+                'metodos'         => $this->metodosDisponiveis($config),
+                'email'           => $user->email,
+            ], 200);
+        }
+
+        // Sem 2FA — login normal
         return response()->json([
             'message' => 'Login realizado com sucesso.',
-            'user'    => auth()->user(),
+            'user'    => $user,
             'token'   => $token,
         ]);
+    }
+
+    // ── Retorna os métodos de 2FA disponíveis ─────────────
+    private function metodosDisponiveis($config): array
+    {
+        return \App\Models\Metodo2fa::where('ativo', true)
+            ->orderBy('ordem')
+            ->get(['chave', 'nome', 'descricao'])
+            ->toArray();
     }
 
     // ── Usuário autenticado ───────────────────────────────────────────────────

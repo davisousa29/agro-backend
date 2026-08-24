@@ -68,4 +68,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Fazenda::class, 'fazendeiro_id');
     }
+
+    public function configuracao2fa()
+    {
+        return $this->hasOne(Configuracao2fa::class, 'user_id');
+    }
 }

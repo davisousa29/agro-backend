@@ -13,11 +13,12 @@ use App\Http\Controllers\Api\Projecao\ProjecaoVendaController;
 use App\Http\Controllers\Api\Notificacao\NotificacaoController;
 use App\Http\Controllers\Api\Auth\RecuperacaoSenhaController;
 use App\Http\Controllers\Api\Auth\GoogleAuthController;
+use App\Http\Controllers\Api\Auth\DoisFatoresController;
 use Illuminate\Support\Facades\Route;
 
-// ── Rotas públicas — não precisam de token ────────────────────────────────────
+// ── Rotas públicas ────────────────────────────────────
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:3,60');
     Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,2');
 
     // Login com Google
@@ -28,7 +29,13 @@ Route::prefix('auth')->group(function () {
     Route::post('/redefinir-senha', [RecuperacaoSenhaController::class, 'redefinir'])->middleware('throttle:5,2');
 });
 
-// ── Rotas protegidas — precisam de token JWT válido ───────────────────────────
+// ── 2FA no login ─────────────────────
+Route::prefix('2fa')->group(function () {
+    Route::post('/login/enviar-email', [DoisFatoresController::class, 'enviarCodigoEmail'])->middleware('throttle:5,2');
+    Route::post('/login/verificar',    [DoisFatoresController::class, 'verificarLogin'])->middleware('throttle:10,2');
+});
+
+// ── Rotas protegidas — token JWT ───────────────────────────
 Route::middleware('auth:api')->group(function () {
 
     Route::prefix('auth')->group(function () {
@@ -116,5 +123,12 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/nao-lidas',           [NotificacaoController::class, 'contarNaoLidas']);
         Route::patch('/{id}/lida',         [NotificacaoController::class, 'marcarLida']);
         Route::patch('/todas/lidas',       [NotificacaoController::class, 'marcarTodasLidas']);
+    });
+
+    // ── 2FA — gestão (requer estar logado) ────────────────────────────────────
+    Route::prefix('2fa')->group(function () {
+        Route::post('/gerar',     [DoisFatoresController::class, 'gerar']);
+        Route::post('/confirmar', [DoisFatoresController::class, 'confirmar']);
+        Route::post('/desativar', [DoisFatoresController::class, 'desativar']);
     });
 });
