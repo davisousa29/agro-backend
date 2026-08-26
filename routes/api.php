@@ -79,7 +79,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/ingredientes',              [IngredienteController::class, 'index']);
         Route::post('/ingredientes',             [IngredienteController::class, 'store']);
         Route::get('/ingredientes/{id}',         [IngredienteController::class, 'show']);
-        Route::patch('/ingredientes/{id}/preco', [IngredienteController::class, 'atualizarPreco']);
+//        Route::patch('/ingredientes/{id}/preco', [IngredienteController::class, 'atualizarPreco']);
 
         // Programas de ração
         Route::get('/programas',                          [RacaoController::class, 'index']);

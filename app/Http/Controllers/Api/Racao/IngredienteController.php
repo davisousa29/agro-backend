@@ -95,26 +95,26 @@ class IngredienteController extends Controller
 
     // ── Atualiza o preço de um ingrediente ────────────────────────────────────
 
-    public function atualizarPreco(Request $request, $id)
-    {
-        $ingrediente = Ingrediente::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'preco_kg' => 'required|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Dados inválidos.',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        $ingrediente->update(['preco_kg' => $request->preco_kg]);
-
-        return response()->json([
-            'message'     => 'Preço atualizado com sucesso.',
-            'ingrediente' => $ingrediente,
-        ]);
-    }
+//    public function atualizarPreco(Request $request, $id)
+//    {
+//        $ingrediente = Ingrediente::findOrFail($id);
+//
+//        $validator = Validator::make($request->all(), [
+//            'preco_kg' => 'required|numeric|min:0',
+//        ]);
+//
+//        if ($validator->fails()) {
+//            return response()->json([
+//                'message' => 'Dados inválidos.',
+//                'errors'  => $validator->errors(),
+//            ], 422);
+//        }
+//
+//        $ingrediente->update(['preco_kg' => $request->preco_kg]);
+//
+//        return response()->json([
+//            'message'     => 'Preço atualizado com sucesso.',
+//            'ingrediente' => $ingrediente,
+//        ]);
+//    }
 }

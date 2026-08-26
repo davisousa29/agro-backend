@@ -17,6 +17,7 @@ class AuthController extends Controller
     {
         $request->merge([
             'email' => strtolower(trim($request->email ?? '')),
+            'role'  => 'consultor',
         ]);
 
         $validator = Validator::make($request->all(), [
@@ -84,7 +85,7 @@ class AuthController extends Controller
             'phone'    => $request->phone,
             'username' => $request->username,
             'whatsapp' => $request->whatsapp,
-            'role'     => $request->role,
+            'role'     => 'consultor',
             'password' => Hash::make($request->password),
         ]);
 
@@ -96,8 +97,6 @@ class AuthController extends Controller
             'token'   => $token,
         ], 201);
     }
-
-    // ── Login ─────────────────────────────────────────────────────────────────
 
     // ── Login ─────────────────────────────────────────────────────────────────
 

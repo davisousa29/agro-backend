@@ -20,12 +20,15 @@ class User extends Authenticatable implements JWTSubject
         'whatsapp',
         'role',
         'password',
-        'active',
+        'google_id',
+        'auth_provider',
+        'avatar_url',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'configuracao2fa',
     ];
 
     protected function casts(): array

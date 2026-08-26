@@ -275,6 +275,9 @@ class DoisFatoresController extends Controller
         // ── Código válido — gera o token e finaliza o login ───────────────────
         $token = auth()->login($user);
 
+        // Remove a config de 2FA do objeto de resposta (não precisa vazar)
+        $user->unsetRelation('configuracao2fa');
+
         return response()->json([
             'message' => 'Login realizado com sucesso.',
             'user'    => $user,
