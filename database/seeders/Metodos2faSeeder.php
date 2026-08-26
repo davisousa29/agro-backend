@@ -12,8 +12,8 @@ class Metodos2faSeeder extends Seeder
         $metodos = [
             [
                 'chave'     => 'authenticator',
-                'nome'      => 'Aplicativo autenticador',
-                'descricao' => 'Use um app como Google Authenticator para gerar códigos.',
+                'nome'      => 'Authenticator',
+                'descricao' => 'Use o app do Google Authenticator para gerar o código de acesso.',
                 'ativo'     => true,
                 'ordem'     => 1,
             ],

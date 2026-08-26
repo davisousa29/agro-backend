@@ -127,6 +127,7 @@ Route::middleware('auth:api')->group(function () {
 
     // ── 2FA — gestão (requer estar logado) ────────────────────────────────────
     Route::prefix('2fa')->group(function () {
+        Route::get('/status',     [DoisFatoresController::class, 'status']);
         Route::post('/gerar',     [DoisFatoresController::class, 'gerar']);
         Route::post('/confirmar', [DoisFatoresController::class, 'confirmar']);
         Route::post('/desativar', [DoisFatoresController::class, 'desativar']);

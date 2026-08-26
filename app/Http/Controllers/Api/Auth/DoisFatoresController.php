@@ -281,4 +281,16 @@ class DoisFatoresController extends Controller
             'token'   => $token,
         ]);
     }
+
+    // ── Retorna o status atual do 2FA do usuário ──────────────────────────────
+    public function status()
+    {
+        $user   = auth()->user();
+        $config = $user->configuracao2fa;
+
+        return response()->json([
+            'ativo'  => (bool) ($config && $config->ativo && $config->confirmado_em),
+            'metodo' => $config->metodo ?? null,
+        ]);
+    }
 }
