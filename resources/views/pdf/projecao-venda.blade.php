@@ -236,7 +236,7 @@
 {{-- Header --}}
 <div class="header">
     <div>
-        <div class="header-titulo">AgroSystem</div>
+        <div class="header-titulo">Colchete</div>
         <div class="header-subtitulo">Projeção de Valor de Venda</div>
     </div>
     <div class="header-data">
@@ -375,7 +375,7 @@
         <div class="footer-label">Responsável técnico</div>
     </div>
     <div class="footer-sistema">
-        Gerado pelo AgroSystem<br>
+        Gerado pelo Colchete<br>
         {{ now()->format('d/m/Y \à\s H:i') }}
     </div>
 </div>
