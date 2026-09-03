@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
+use App\Rules\ValidCpf;
+use App\Support\Document;
 
 class AuthController extends Controller
 {
@@ -18,11 +20,13 @@ class AuthController extends Controller
         $request->merge([
             'email' => strtolower(trim($request->email ?? '')),
             'role'  => 'consultor',
+            'cpf'   => Document::onlyDigits($request->cpf ?? ''),
         ]);
 
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|min:3|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
+            'cpf' => ['required', 'string', 'size:11', 'unique:users', new ValidCpf()],
             'phone'    => 'nullable|string|min:11|max:11',
             'username' => 'required|string|min:3|max:30|unique:users|alpha_dash',
             'whatsapp' => 'nullable|string|min:11|max:11',
@@ -42,6 +46,7 @@ class AuthController extends Controller
             // ── Campos obrigatórios ─────────────────────────────
             'name.required' => 'O nome é obrigatório.',
             'email.required' => 'O email é obrigatório.',
+            'cpf.required' => 'O CPF é obrigatório.',
             'username.required' => 'O nome de usuário é obrigatório.',
             'password.required' => 'A senha é obrigatória.',
             'role.required' => 'O tipo de usuário é obrigatório.',
@@ -49,6 +54,7 @@ class AuthController extends Controller
             // ── Formatos inválidos ──────────────────────────────
             'name.min' => 'O nome deve ter no mínimo 3 letras.',
             'email.email' => 'Informe um email válido.',
+            'cpf.size'     => 'O CPF deve conter 11 dígitos.',
             'phone.min' => 'O número de telefone deve ter no mínimo 11 caracteres.',
             'phone.max' => 'O número de telefone deve ter no máximo 11 caracteres.',
             'whatsapp.min' => 'O número de whatsapp deve ter no mínimo 11 caracteres.',
@@ -58,6 +64,7 @@ class AuthController extends Controller
 
             // ── Unicidade ───────────────────────────────────────
             'email.unique' => 'Não é possível utilizar este email.',
+            'cpf.unique'   => 'Não é possível utilizar este CPF.',
             'username.unique' => 'Não é possível utilizar este nome.',
 
             // ── Senha ───────────────────────────────────────────
@@ -82,6 +89,7 @@ class AuthController extends Controller
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
+            'cpf'      => $request->cpf,
             'phone'    => $request->phone,
             'username' => $request->username,
             'whatsapp' => $request->whatsapp,
