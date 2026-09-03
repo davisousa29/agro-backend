@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
 use App\Rules\ValidCpf;
 use App\Support\Document;
+use App\Services\SubscriptionService;
 
 class AuthController extends Controller
 {
@@ -96,6 +97,8 @@ class AuthController extends Controller
             'role'     => 'consultor',
             'password' => Hash::make($request->password),
         ]);
+
+        app(SubscriptionService::class)->createTrial($user);
 
         $token = auth()->login($user);
 

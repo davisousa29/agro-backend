@@ -30,6 +30,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
         'configuracao2fa',
+        'subscription',
     ];
 
     protected function casts(): array
@@ -76,5 +77,10 @@ class User extends Authenticatable implements JWTSubject
     public function configuracao2fa()
     {
         return $this->hasOne(Configuracao2fa::class, 'user_id');
+    }
+
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class, 'user_id');
     }
 }
