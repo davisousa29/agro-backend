@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(fn () => null);
+
+        // Alias do middleware de verificação de assinatura
+        $middleware->alias([
+            'subscription.active' => \App\Http\Middleware\EnsureSubscriptionActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
 
