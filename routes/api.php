@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\Auth\RecuperacaoSenhaController;
 use App\Http\Controllers\Api\Auth\GoogleAuthController;
 use App\Http\Controllers\Api\Auth\DoisFatoresController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
+use App\Http\Controllers\Api\Subscription\CheckoutController;
+use App\Http\Controllers\Api\Webhook\AsaasWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // ── Rotas públicas ────────────────────────────────────
@@ -30,6 +32,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/redefinir-senha', [RecuperacaoSenhaController::class, 'redefinir'])->middleware('throttle:5,2');
 });
 
+// ── Webhooks (público — autenticado pelo token no header) ──────────────
+Route::post('/webhooks/asaas', [AsaasWebhookController::class, 'handle']);
+
 // ── 2FA no login ─────────────────────
 Route::prefix('2fa')->group(function () {
     Route::post('/login/enviar-email', [DoisFatoresController::class, 'enviarCodigoEmail'])->middleware('throttle:5,2');
@@ -39,9 +44,6 @@ Route::prefix('2fa')->group(function () {
 // ── Rotas protegidas — token JWT ───────────────────────────
 Route::middleware('auth:api')->group(function () {
 
-    // ── SEMPRE acessíveis (mesmo com assinatura vencida) ──────────────────────
-    // O login funciona; o usuário vencido só consegue ver o status, sair e pagar.
-
     Route::prefix('auth')->group(function () {
         Route::get('/me',      [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -49,10 +51,11 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('subscription')->group(function () {
         Route::get('/status', [SubscriptionController::class, 'status']);
-        // (futuras rotas de pagamento/planos entram aqui — livres do bloqueio)
+        Route::get('/plans',          [CheckoutController::class, 'plans']);
+        Route::post('/checkout',      [CheckoutController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('/checkout/{id}',  [CheckoutController::class, 'show'])->whereUuid('id');
     });
 
-    // ── Exigem ASSINATURA ATIVA ───────────────────────────────────────────────
     Route::middleware('subscription.active')->group(function () {
 
         Route::prefix('perfil')->group(function () {
@@ -84,15 +87,12 @@ Route::middleware('auth:api')->group(function () {
         // ── Programa de Formulação de Ração ───────────────────────────────────
         Route::prefix('racao')->group(function () {
 
-            // Exigências nutricionais
             Route::post('/exigencias', [ExigenciaController::class, 'calcular']);
 
-            // Ingredientes
             Route::get('/ingredientes',              [IngredienteController::class, 'index']);
             Route::post('/ingredientes',             [IngredienteController::class, 'store']);
             Route::get('/ingredientes/{id}',         [IngredienteController::class, 'show']);
 
-            // Programas de ração
             Route::get('/programas',                          [RacaoController::class, 'index']);
             Route::post('/programas',                         [RacaoController::class, 'store']);
             Route::get('/programas/{id}',                     [RacaoController::class, 'show']);
@@ -108,7 +108,6 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/categorias',  fn() => response()->json(['categorias'=> \App\Models\CategoriaAnimal::where('ativo', true)->get()]));
             Route::get('/sistemas',    fn() => response()->json(['sistemas'  => \App\Models\SistemaProducao::where('ativo', true)->get()]));
 
-            // Filtradas por espécie
             Route::get('/racas/{especie_id}',      fn($id) => response()->json(['racas'     => \App\Models\Raca::where('especie_id', $id)->where('ativo', true)->get()]));
             Route::get('/categorias/{especie_id}', fn($id) => response()->json(['categorias'=> \App\Models\CategoriaAnimal::where('especie_id', $id)->where('ativo', true)->get()]));
             Route::get('/sistemas/{especie_id}',   fn($id) => response()->json(['sistemas'  => \App\Models\SistemaProducao::where('especie_id', $id)->where('ativo', true)->get()]));
@@ -127,7 +126,6 @@ Route::middleware('auth:api')->group(function () {
             Route::patch('/{id}/contrato', [ProjecaoVendaController::class, 'vincularContrato']);
         });
 
-        // ── Notificações direcionadas ───────────
         Route::prefix('notificacoes')->group(function () {
             Route::get('/',                    [NotificacaoController::class, 'index']);
             Route::get('/ultimas',             [NotificacaoController::class, 'ultimas']);
@@ -136,7 +134,6 @@ Route::middleware('auth:api')->group(function () {
             Route::patch('/todas/lidas',       [NotificacaoController::class, 'marcarTodasLidas']);
         });
 
-        // ── 2FA — gestão (requer estar logado) ────────────────────────────────
         Route::prefix('2fa')->group(function () {
             Route::get('/status',     [DoisFatoresController::class, 'status']);
             Route::post('/gerar',     [DoisFatoresController::class, 'gerar']);
@@ -144,6 +141,6 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/desativar', [DoisFatoresController::class, 'desativar']);
         });
 
-    });
+    }); // fim do subscription.active
 
-});
+}); // fim do auth:api

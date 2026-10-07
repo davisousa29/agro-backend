@@ -30,18 +30,33 @@ class AsaasGateway implements PaymentGateway
 
     public function createCustomer(User $user): string
     {
-        $response = $this->client()->post('/customers', [
+        $payload = [
             'name'    => $user->name,
             'email'   => $user->email,
             'cpfCnpj' => Document::onlyDigits($user->cpf),
-            'mobilePhone' => Document::onlyDigits($user->whatsapp ?? $user->phone ?? ''),
-        ]);
+        ];
+
+        $phone = Document::onlyDigits($user->whatsapp ?? $user->phone ?? '');
+        if (strlen($phone) === 11) {
+            $payload['mobilePhone'] = $phone;
+        }
+
+        $response = $this->client()->post('/customers', $payload);
+
+        if (
+            !$response->successful()
+            && isset($payload['mobilePhone'])
+            && collect($response->json('errors', []))->contains('code', 'invalid_mobilePhone')
+        ) {
+            unset($payload['mobilePhone']);
+            $response = $this->client()->post('/customers', $payload);
+        }
 
         if (!$response->successful()) {
             throw new \Exception('Erro ao criar cliente no Asaas: ' . $response->body());
         }
 
-        return $response->json('id'); // ID do cliente no Asaas (ex: cus_000...)
+        return $response->json('id');
     }
 
     public function createPayment(array $data): array
@@ -106,7 +121,15 @@ class AsaasGateway implements PaymentGateway
 
     public function parseWebhook(array $payload): array
     {
-        // TODO: implementar interpretação do webhook
-        throw new \Exception('parseWebhook ainda não implementado.');
+        $event   = $payload['event'] ?? null;
+        $payment = $payload['payment'] ?? [];
+
+        return [
+            'event'              => $event,
+            'gateway_payment_id' => $payment['id'] ?? null,
+            'status'             => $payment['status'] ?? null,
+            'external_reference' => $payment['externalReference'] ?? null,
+            'value'              => $payment['value'] ?? null,
+        ];
     }
 }
