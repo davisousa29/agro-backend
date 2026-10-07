@@ -14,6 +14,7 @@ class Payment extends Model
         'gateway',
         'gateway_payment_id',
         'plan',
+        'days',
         'payment_method',
         'value',
         'status',
@@ -24,6 +25,7 @@ class Payment extends Model
 
     protected $casts = [
         'value'    => 'decimal:2',
+        'days'     => 'integer',
         'due_date' => 'date',
         'paid_at'  => 'datetime',
     ];

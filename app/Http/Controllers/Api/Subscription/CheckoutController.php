@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api\Subscription;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\Plan;
 use App\Services\Payment\CheckoutService;
 use App\Services\Payment\PaymentGateway;
-use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CheckoutController extends Controller
 {
@@ -21,13 +22,12 @@ class CheckoutController extends Controller
     // ── Lista os planos disponíveis ───────────────────────────────────────────
     public function plans()
     {
-        $plans = collect(CheckoutService::PLAN_PRICES)
-            ->map(fn ($price, $plan) => [
-                'plan'  => $plan,
-                'price' => $price,
-                'days'  => SubscriptionService::PLAN_DAYS[$plan],
-            ])
-            ->values();
+        $plans = Plan::active()->get()->map(fn (Plan $plan) => [
+            'plan'  => $plan->slug,
+            'name'  => $plan->name,
+            'price' => (float) $plan->price,
+            'days'  => $plan->days,
+        ]);
 
         return response()->json(['plans' => $plans]);
     }
@@ -36,10 +36,10 @@ class CheckoutController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'plan' => 'required|in:' . implode(',', array_keys(CheckoutService::PLAN_PRICES)),
+            'plan' => ['required', Rule::exists('plans', 'slug')->where('is_active', true)],
         ], [
             'plan.required' => 'Escolha um plano.',
-            'plan.in'       => 'Plano inválido.',
+            'plan.exists'   => 'Plano inválido.',
         ]);
 
         if ($validator->fails()) {
@@ -99,6 +99,7 @@ class CheckoutController extends Controller
         return [
             'id'          => $payment->id,
             'plan'        => $payment->plan,
+            'days'        => $payment->days,
             'value'       => (float) $payment->value,
             'status'      => $payment->status,
             'due_date'    => $payment->due_date?->toDateString(),

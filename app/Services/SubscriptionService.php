@@ -12,13 +12,6 @@ class SubscriptionService
     const GRACE_TRIAL_DAYS = 7;
     const GRACE_PAID_DAYS  = 30;
 
-    // Dias de acesso liberados por plano
-    const PLAN_DAYS = [
-        'monthly'    => 30,
-        'semiannual' => 180,
-        'annual'     => 365,
-    ];
-
     /**
      * Cria a assinatura de trial para um novo usuário.
      */
@@ -56,11 +49,13 @@ class SubscriptionService
      * - Se ainda está ativa e no prazo: soma os dias ao vencimento atual (renovação antecipada).
      * - Se está em trial, vencida ou bloqueada: começa a contar de hoje (não retroativo).
      * - Vitalícia não é alterada.
+     *
+     * $days vem da própria cobrança (cópia do plano no momento da compra).
      */
-    public function activate(User $user, string $plan, string $paymentMethod): Subscription
+    public function activate(User $user, string $plan, int $days, string $paymentMethod): Subscription
     {
-        if (!isset(self::PLAN_DAYS[$plan])) {
-            throw new \InvalidArgumentException("Plano inválido: {$plan}");
+        if ($days <= 0) {
+            throw new \InvalidArgumentException("Quantidade de dias inválida: {$days}");
         }
 
         $subscription = $user->subscription ?? new Subscription(['user_id' => $user->id]);
@@ -82,7 +77,7 @@ class SubscriptionService
             'plan'           => $plan,
             'payment_method' => $paymentMethod,
             'starts_at'      => $stillActive ? $subscription->starts_at : now(),
-            'expires_at'     => $base->addDays(self::PLAN_DAYS[$plan]),
+            'expires_at'     => $base->addDays($days),
             'is_subscriber'  => true,
             'blocked_at'     => null,
             'grace_ends_at'  => null,
