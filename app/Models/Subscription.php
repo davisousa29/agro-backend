@@ -23,6 +23,7 @@ class Subscription extends Model
         'is_subscriber',
         'gateway_customer_id',
         'gateway_subscription_id',
+        'data_purged_at',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class Subscription extends Model
         'blocked_at'     => 'datetime',
         'grace_ends_at'  => 'datetime',
         'is_subscriber'  => 'boolean',
+        'data_purged_at' => 'datetime',
     ];
 
     public function user()

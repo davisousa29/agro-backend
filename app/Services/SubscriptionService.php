@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Subscription;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class SubscriptionService
 {
@@ -81,9 +82,49 @@ class SubscriptionService
             'is_subscriber'  => true,
             'blocked_at'     => null,
             'grace_ends_at'  => null,
+            'data_purged_at' => null, // novo ciclo: a exclusão volta a valer se vencer de novo
         ]);
         $subscription->save();
 
         return $subscription;
+    }
+
+    /**
+     * Até quando os dados ficam guardados depois do vencimento.
+     * A graça conta a partir do vencimento (e não de quando o job rodou).
+     */
+    public function graceEndsAt(Subscription $subscription): Carbon
+    {
+        $days = $subscription->is_subscriber ? self::GRACE_PAID_DAYS : self::GRACE_TRIAL_DAYS;
+
+        return $subscription->expires_at->copy()->addDays($days);
+    }
+
+    /**
+     * Marca a assinatura como vencida e abre o período de graça.
+     * Trava a linha e revalida: se um pagamento chegou nesse meio-tempo, não faz nada.
+     * Retorna true se a assinatura foi de fato marcada como vencida.
+     */
+    public function expire(Subscription $subscription): bool
+    {
+        return DB::transaction(function () use ($subscription) {
+            $locked = Subscription::whereKey($subscription->id)->lockForUpdate()->first();
+
+            if (
+                !$locked
+                || !in_array($locked->status, ['trial', 'active'], true)
+                || $locked->expires_at->isFuture()
+            ) {
+                return false;
+            }
+
+            $locked->update([
+                'status'        => 'expired',
+                'blocked_at'    => $locked->expires_at,
+                'grace_ends_at' => $this->graceEndsAt($locked),
+            ]);
+
+            return true;
+        });
     }
 }
