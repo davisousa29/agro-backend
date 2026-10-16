@@ -30,15 +30,22 @@ class SubscriptionService
     /**
      * Concede assinatura vitalícia (cortesia para clientes de teste).
      */
+    /**
+     * Concede assinatura vitalícia (cortesia para clientes de teste).
+     * Limpa bloqueio e graça: se o cliente estava vencido, volta a ter acesso na hora.
+     */
     public function grantLifetime(User $user): Subscription
     {
         $subscription = $user->subscription ?? new Subscription(['user_id' => $user->id]);
 
         $subscription->fill([
-            'user_id'    => $user->id,
-            'status'     => 'lifetime',
-            'starts_at'  => $subscription->starts_at ?? now(),
-            'expires_at' => now()->addYears(100),
+            'user_id'        => $user->id,
+            'status'         => 'lifetime',
+            'starts_at'      => $subscription->starts_at ?? now(),
+            'expires_at'     => now()->addYears(100),
+            'blocked_at'     => null,
+            'grace_ends_at'  => null,
+            'data_purged_at' => null,
         ]);
         $subscription->save();
 
