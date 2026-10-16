@@ -46,4 +46,8 @@ return [
         'webhook_token' => env('ASAAS_WEBHOOK_TOKEN'),
     ],
 
+    'mail_queue' => [
+        'limit'   => (int) env('MAIL_RATE_LIMIT', 1),
+        'seconds' => (int) env('MAIL_RATE_SECONDS', 1),
+    ],
 ];

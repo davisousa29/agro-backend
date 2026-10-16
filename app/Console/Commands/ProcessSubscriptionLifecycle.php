@@ -154,10 +154,10 @@ class ProcessSubscriptionLifecycle extends Command
 
         try {
             $notices->send($subscription, $type);
-            $this->line("  - {$email} → aviso {$type} enviado");
+            $this->line("  - {$email} → aviso {$type} registrado, e-mail na fila");
         } catch (\Throwable $e) {
-            $this->error("  - {$email} → falha ao enviar aviso {$type}: {$e->getMessage()}");
-            Log::error('Falha ao enviar aviso de assinatura', [
+            $this->error("  - {$email} → falha ao registrar aviso {$type}: {$e->getMessage()}");
+            Log::error('Falha ao registrar aviso de assinatura', [
                 'user_id' => $subscription->user_id,
                 'type'    => $type,
                 'erro'    => $e->getMessage(),

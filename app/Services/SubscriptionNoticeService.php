@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
-use App\Mail\SubscriptionNoticeMail;
 use App\Models\Subscription;
 use App\Models\SubscriptionNotice;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use App\Jobs\SendSubscriptionNoticeEmail;
 
 class SubscriptionNoticeService
 {
@@ -63,8 +62,9 @@ class SubscriptionNoticeService
     }
 
     /**
-     * Envia o aviso por email e pela notificação do app, e registra o envio.
-     * O email vai primeiro: se falhar, nada é registrado e o aviso é tentado de novo no próximo dia.
+     * Registra o aviso: notificação no app + registro do envio + e-mail na fila.
+     * Tudo na mesma transação (a fila fica no banco): ou os três são gravados, ou nenhum,
+     * e nesse caso o aviso é tentado de novo na próxima execução.
      */
     public function send(Subscription $subscription, string $type): bool
     {
@@ -75,8 +75,6 @@ class SubscriptionNoticeService
         $user = $subscription->user;
         [$title, $message] = $this->texts($subscription, $type);
 
-        Mail::to($user->email)->send(new SubscriptionNoticeMail($user->name, $title, $message));
-
         DB::transaction(function () use ($subscription, $type, $user, $title, $message) {
             NotificacaoService::criar($user->id, 'assinatura', $title, $message, ['rota' => 'assinatura']);
 
@@ -85,6 +83,8 @@ class SubscriptionNoticeService
                 'type'            => $type,
                 'reference_at'    => $this->referenceFor($subscription, $type),
             ]);
+
+            SendSubscriptionNoticeEmail::dispatch($user->email, $user->name, $title, $message);
         });
 
         return true;
