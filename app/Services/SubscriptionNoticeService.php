@@ -120,11 +120,12 @@ class SubscriptionNoticeService
 
     /**
      * Título e mensagem de cada aviso.
-     * Quem nunca pagou (is_subscriber = false) recebe o texto de teste grátis.
+     * Assinatura sem plano (trial) recebe o texto de teste grátis.
      */
     private function texts(Subscription $subscription, string $type): array
     {
-        $isTrial    = !$subscription->is_subscriber;
+        // Trial é a única situação sem plano (pagos têm o plano; ex-vitalícios têm 'courtesy')
+        $isTrial    = $subscription->plan === null;
         $expiresAt  = $this->format($subscription->expires_at);
         $graceEnds  = $subscription->grace_ends_at ? $this->format($subscription->grace_ends_at) : '';
         $renewHint  = $isTrial
