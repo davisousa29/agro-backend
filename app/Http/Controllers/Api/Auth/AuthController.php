@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Rules\ValidCpf;
 use App\Support\Document;
 use App\Services\SubscriptionService;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -192,6 +193,38 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logout realizado com sucesso.',
+        ]);
+    }
+
+    // ── Renovação do token ────────────────────────────────────────────────────
+
+    public function refresh()
+    {
+        try {
+            // Valida o token (mesmo vencido), confere a janela de renovação,
+            // gera um token novo e põe o antigo na lista negra
+            $token = auth()->refresh();
+        } catch (JWTException $e) {
+            // Fora da janela, já renovado (lista negra), inválido ou ausente
+            return response()->json([
+                'message' => 'Sessão expirada. Faça login novamente.',
+            ], 401);
+        }
+
+        $user = auth()->setToken($token)->user();
+
+        // Conta desativada depois do login não pode continuar renovando
+        if (!$user || !$user->active) {
+            auth()->invalidate();
+
+            return response()->json([
+                'message' => 'Sessão expirada. Faça login novamente.',
+            ], 401);
+        }
+
+        return response()->json([
+            'user'  => $user,
+            'token' => $token,
         ]);
     }
 }

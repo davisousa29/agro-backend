@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:3,60');
     Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:5,2');
+    Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('throttle:20,1');
 
     // Login com Google
     Route::post('/google', [GoogleAuthController::class, 'login'])->middleware('throttle:10,1');
